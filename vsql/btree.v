@@ -122,9 +122,17 @@ fn (mut p Btree) add(obj PageObject) ? {
 }
 
 fn (mut p Btree) split_page(path []int, page &Page, obj PageObject, kind byte) ? {
+	// Only non-leaf pages are sorted so make sure we sort leaf pages before
+	// dividing.
+	mut objects := page.objects()
+	if page.kind == kind_leaf {
+		objects.sort_with_compare(fn (a &PageObject, b &PageObject) int {
+			return compare_bytes(a.key, b.key)
+		})
+	}
+
 	// TODO(elliotchance): We do this by dividing the number of entities, this
 	//  isn't the best since it can result in pages that aren't evenly split.
-	objects := page.objects()
 	left := objects[..objects.len / 2]
 
 	mut page1 := new_page(kind, p.pager.page_size())

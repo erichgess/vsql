@@ -34,51 +34,64 @@ fn (mut iter PageIterator) next() ?PageObject {
 		// Load all the objects for this leaf. Making sure to skip over any keys
 		// that are out of bounds.
 		iter.objects = (iter.btree.pager.fetch_page(iter.path[iter.path.len - 1]) ?).objects()
-		for object in iter.objects {
-			// TODO(elliotchance): It would be more efficient to do a binary
-			//  search here since the page is already sorted.
-			if compare_bytes(object.key, iter.min) < 0 {
+
+		// iter.objects.sort_with_compare(fn (a &PageObject, b &PageObject) int {
+		// 	return compare_bytes(a.key, b.key)
+		// })
+
+		// for object in iter.objects {
+		// 	// TODO(elliotchance): It would be more efficient to do a binary
+		// 	//  search here since the page is already sorted.
+		// 	if compare_bytes(object.key, iter.min) < 0 {
+		// 		iter.depth_iterator[iter.depth_iterator.len - 1]++
+		// 	}
+		// }
+	}
+
+	for {
+		// If this page is done, roll up to the parent and continue to traverse
+		// down.
+		if iter.depth_iterator[iter.depth_iterator.len - 1] >= iter.objects.len {
+			for {
+				if iter.path.len == 1 {
+					return error('')
+				}
+
+				iter.path = iter.path[..iter.path.len - 1]
+				iter.depth_iterator = iter.depth_iterator[..iter.depth_iterator.len - 1]
 				iter.depth_iterator[iter.depth_iterator.len - 1]++
+
+				if iter.depth_iterator[iter.depth_iterator.len - 1] < (iter.btree.pager.fetch_page(iter.path[iter.path.len - 1]) ?).objects().len {
+					break
+				}
 			}
+
+			for (iter.btree.pager.fetch_page(iter.path[iter.path.len - 1]) ?).kind == kind_not_leaf {
+				objects := (iter.btree.pager.fetch_page(iter.path[iter.path.len - 1]) ?).objects()
+
+				iter.path << bytes_to_int(objects[iter.depth_iterator[iter.depth_iterator.len - 1]].value)
+				iter.depth_iterator << 0
+			}
+
+			iter.objects = (iter.btree.pager.fetch_page(iter.path[iter.path.len - 1]) ?).objects()
+
+			// iter.objects.sort_with_compare(fn (a &PageObject, b &PageObject) int {
+			// 	return compare_bytes(a.key, b.key)
+			// })
+		}
+
+		o := iter.objects[iter.depth_iterator[iter.depth_iterator.len - 1]]
+		iter.depth_iterator[iter.depth_iterator.len - 1]++
+
+		// Only return objects within bounds.
+		if compare_bytes(o.key, iter.min) >= 0 && compare_bytes(o.key, iter.max) <= 0 {
+			// println(string(o.key))
+			return o
 		}
 	}
 
-	// If this page is done, roll up to the parent and continue to traverse
-	// down.
-	if iter.depth_iterator[iter.depth_iterator.len - 1] >= iter.objects.len {
-		for {
-			if iter.path.len == 1 {
-				return error('')
-			}
-
-			iter.path = iter.path[..iter.path.len - 1]
-			iter.depth_iterator = iter.depth_iterator[..iter.depth_iterator.len - 1]
-			iter.depth_iterator[iter.depth_iterator.len - 1]++
-
-			if iter.depth_iterator[iter.depth_iterator.len - 1] < (iter.btree.pager.fetch_page(iter.path[iter.path.len - 1]) ?).objects().len {
-				break
-			}
-		}
-
-		for (iter.btree.pager.fetch_page(iter.path[iter.path.len - 1]) ?).kind == kind_not_leaf {
-			objects := (iter.btree.pager.fetch_page(iter.path[iter.path.len - 1]) ?).objects()
-
-			iter.path << bytes_to_int(objects[iter.depth_iterator[iter.depth_iterator.len - 1]].value)
-			iter.depth_iterator << 0
-		}
-
-		iter.objects = (iter.btree.pager.fetch_page(iter.path[iter.path.len - 1]) ?).objects()
-	}
-
-	o := iter.objects[iter.depth_iterator[iter.depth_iterator.len - 1]]
-	iter.depth_iterator[iter.depth_iterator.len - 1]++
-
-	// We also need to bail out if we encounter a value greater the upper bound.
-	if compare_bytes(o.key, iter.max) > 0 {
-		return error('')
-	}
-
-	return o
+	panic('here')
+	// return o
 }
 
 // A PrimaryKeyOperation scans an inclusive range for a PRIMARY KEY.

@@ -27,6 +27,9 @@ test:
 sql-test:
 	v -stats -gc boehm test vsql/sql_test.v
 
+btree-test:
+	v -stats -gc boehm test vsql/btree_test.v
+
 # Examples
 
 examples:

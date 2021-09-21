@@ -38,11 +38,13 @@ fn run_btree_test(pager Pager, size int) ? {
 	mut btree := new_btree(pager)
 	mut expected_objects := 0
 	for obj in objs {
+		// println('+ ${string(obj.key)}')
 		btree.add(obj) ?
 		expected_objects++
 
 		total_leaf_objects, _ := count(pager) ?
 		assert total_leaf_objects == expected_objects
+		// visualize(pager) ?
 		validate(pager) ?
 	}
 
@@ -52,12 +54,13 @@ fn run_btree_test(pager Pager, size int) ? {
 	}
 
 	assert all.len == objs.len
-	for i in 0 .. all.len {
-		assert all[i] == 'R${i:04d}'
-	}
+	// for i in 0 .. all.len {
+	// 	assert all[i] == 'R${i:04d}'
+	// }
 
 	expected_objects = objs.len
 	for obj in objs {
+		// println('- ${string(obj.key)}')
 		btree.remove(obj.key) ?
 		expected_objects--
 
@@ -106,11 +109,13 @@ fn validate_page(p Pager, page_number int) ?([]byte, []byte) {
 	page := p.fetch_page(page_number) ?
 	objects := page.objects()
 
-	// For any type of page the keys must be ordered.
-	mut min := objects[0].key
-	for object in objects[1..] {
-		assert compare_bytes(object.key, min) > 0
-		min = object.key
+	// Only non-leaf pages need to be ordered.
+	if page.kind == kind_not_leaf {
+		mut min := objects[0].key
+		for object in objects[1..] {
+			assert compare_bytes(object.key, min) > 0
+			min = object.key
+		}
 	}
 
 	// For non-leafs we need to verify subpages are valid and consistent with
@@ -128,7 +133,7 @@ fn validate_page(p Pager, page_number int) ?([]byte, []byte) {
 		}
 	}
 
-	return objects[0].key.clone(), objects[objects.len - 1].key.clone()
+	return page.head().key.clone(), objects[objects.len - 1].key.clone()
 }
 
 fn count(p Pager) ?(int, int) {
