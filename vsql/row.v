@@ -272,10 +272,13 @@ fn (mut r Row) object_key(t Table) ?[]byte {
 
 	mut key := new_bytes([]byte{})
 	key.write_byte(`R`)
-	key.write_bytes(t.name.bytes())
+	key.write_bytes(t.name.bytes())  // ERICH: Could you use a numerical table id for this?
 
 	// TODO(elliotchance): This is actually not a safe separator to use since
 	//  deliminated table names can contain ':'
+	// ERICH: this can be safe, so long as you define the separator as the _last_
+	//     ':' that appears in the object key.  Ofc, this assumes that that the row id cannot
+	//     contain a ':', if it can then all bets are off.
 	key.write_byte(`:`)
 	key.write_bytes(r.id)
 

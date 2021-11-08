@@ -22,6 +22,8 @@ fn execute_create_table(mut c Connection, stmt CreateTableStmt, elapsed_parse ti
 
 	mut columns := []Column{}
 	mut primary_key := []string{}
+	// ERICH: Why not do this before taking the lock?  That would shrink down the
+	// time spent with the lock taken and freeing the lock up for other work.
 	for table_element in stmt.table_elements {
 		match table_element {
 			Column {

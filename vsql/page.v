@@ -40,6 +40,9 @@ fn (o PageObject) length() int {
 	return vsql.page_object_prefix_length + o.key.len + o.value.len
 }
 
+// ERICH: instead of creating new buffer, could you pass a pointer to the target
+// slice in the `Page::data` buffer and write directly?  That would remove the
+// need to allocate data and it would remove data copy in `add`
 fn (o PageObject) serialize() []byte {
 	mut buf := new_bytes([]byte{})
 	buf.write_int(o.length())
@@ -150,7 +153,7 @@ fn (mut p Page) add(obj PageObject) ? {
 	//
 	// We return a SQLSTATE 40001 to let the client know it should retry the
 	// entire transaction again.
-	mut objects := p.objects()
+	mut objects := p.objects() // ERICH: why not have `version` call `objects`?
 	if p.versions(obj.key, objects).len >= 2 {
 		return sqlstate_40001('avoiding concurrent write on individual row')
 	}
@@ -165,7 +168,8 @@ fn (mut p Page) add(obj PageObject) ? {
 
 	mut offset := 0
 	for object in objects {
-		s := object.serialize()
+		s := object.serialize()  // ERICH: possible to serialize into the `data` array
+		// ERICH: can this be replaced with memcpy?
 		for i in 0 .. s.len {
 			p.data[offset] = s[i]
 			offset++
@@ -181,13 +185,16 @@ fn (mut p Page) delete(key []byte, tid int) bool {
 	mut offset := 0
 	mut did_delete := false
 	for object in p.objects() {
+		// If this is the object to delete then remove its length from the used space tracker
 		if compare_bytes(key, object.key) == 0 && object.tid == tid {
 			p.used -= u16(object.length())
 			did_delete = true
 			continue
 		}
 
-		s := object.serialize()
+		// ERICH: I don't think there's any reason to do this until `did_delete == true`, bc objects
+		// won't shift in `data` until after the deletion point.
+		s := object.serialize()  // ERICH: object is already serialized in `p.data` so just copy straight from there?
 		for i in 0 .. s.len {
 			p.data[offset] = s[i]
 			offset++

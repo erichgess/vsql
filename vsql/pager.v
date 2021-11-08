@@ -113,12 +113,20 @@ fn (mut p FilePager) store_page(page_number int, page Page) ? {
 	// in the pages.
 	p.file.seek(int(sizeof(Header)) + (p.page_size * page_number), .start) ?
 
+	// ERICH: Do you need this intermediate buffer?  Could you just write the
+	// page header and then the `page.data` directly to the file?  Seems like that
+	// would remove some busy work and make things faster?
 	mut b := new_bytes([]byte{})
+
+	// Write page header
 	b.write_byte(page.kind)
 	b.write_u16(page.used)
-	b.write_bytes(page.data)
 
-	p.file.write(b.bytes()) ?
+	// Write page data
+	b.write_bytes(page.data) // ERICH: Is there a reason to duplicate the page data and not just write directly to the file?
+
+	// Write to file
+	p.file.write(b.bytes()) ? // ERICH: Does this write to a user space buffer? Kernel space buffer? What are the semantics you want around durability for this function?
 }
 
 fn (mut p FilePager) total_pages() int {

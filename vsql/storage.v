@@ -97,10 +97,11 @@ fn (mut f Storage) close() ? {
 
 	write_header(mut f.file, f.header) ?
 
-	f.file.flush()
+	f.file.flush() // ERICH: does this fsync to disk or flush to the Linux buffer?  want to fsync on close
 	f.file.close()
 }
 
+// ERICH: bit confusing that the identifier for Storage is `f`
 fn (mut f Storage) create_table(table_name string, columns []Column, primary_key []string) ? {
 	f.isolation_start() ?
 	defer {
@@ -203,6 +204,10 @@ fn (mut f Storage) isolation_start() ? {
 		}
 	}
 
+	// ERICH: why not have the following code in the appropriate match block
+	// above?  this is uniquely associated with that block and separating them
+	// creates risk.
+	// -erich-
 	f.header.transaction_id++
 
 	f.transaction_id = f.header.transaction_id
@@ -231,6 +236,11 @@ fn (mut f Storage) isolation_end() ? {
 		}
 	}
 
+
+	// ERICH: why not have the following code in the appropriate match block
+	// above?  this is uniquely associated with that block and separating them
+	// creates risk.
+	// -erich-
 	// Revist any remaining pages to clean out any expired rows.
 	for page_number, _ in f.transaction_pages {
 		mut page := f.btree.pager.fetch_page(page_number) ?

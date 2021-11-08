@@ -11,6 +11,9 @@ const current_version = i8(6)
 
 // The Header contains important metadata about the database and always occupies
 // the first page of the database.
+//
+// ERICH: I got confused a couple times and thought this was the Header for a Page, so
+//        might be good to have the name explicitly mention this the DB Header.
 struct Header {
 	// version must be current_version.
 	version i8

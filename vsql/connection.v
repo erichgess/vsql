@@ -49,6 +49,9 @@ pub fn open(path string) ?&Connection {
 //
 // See ConnectionOptions and default_connection_options().
 pub fn open_database(path string, options ConnectionOptions) ?&Connection {
+	// ERICH: I would remove this if block and change the following to
+	// if path != ':memory:' && !os.exists(path). b/c the only real decision
+	// being made is if a file needs to be initialized
 	if path == ':memory:' {
 		return open_connection(path, options)
 	}

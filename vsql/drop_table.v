@@ -20,6 +20,9 @@ fn execute_drop_table(mut c Connection, stmt DropTableStmt, elapsed_parse time.D
 
 	// TODO(elliotchance): Also delete rows. See
 	//  https://github.com/elliotchance/vsql/issues/65.
+	// ERICH: I'd move the look up for the table id into `delete_table` b/c this
+	// doesn't enforce the requirement that table id == table_name and therefore
+	// a user to could pass the wrong table id.
 	c.storage.delete_table(table_name, c.storage.tables[table_name].tid) ?
 
 	return new_result_msg('DROP TABLE 1', elapsed_parse, t.elapsed())
