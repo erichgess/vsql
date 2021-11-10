@@ -43,6 +43,14 @@ fn (o PageObject) length() int {
 // ERICH: instead of creating new buffer, could you pass a pointer to the target
 // slice in the `Page::data` buffer and write directly?  That would remove the
 // need to allocate data and it would remove data copy in `add`
+//
+// ERICH: I think creating lots of short lived buffers would also create a lot of heap
+// growth and GC latency. e.g. If you have a page with a lot of small objects and
+// delete one object on the left side of the page, then the delete operation will
+// create hundreds of small buffers as it deserializes, reserializes, and copies
+// they're short lived but the GC probably won't run enough to keep them from causing
+// a lot of fragmentation and heap growth, which could lead to system calls to request
+// more memory from the OS.
 fn (o PageObject) serialize() []byte {
 	mut buf := new_bytes([]byte{})
 	buf.write_int(o.length())
@@ -209,6 +217,15 @@ fn (mut p Page) delete(key []byte, tid int) bool {
 fn (mut p Page) expire(key []byte, tid int, xid int) bool {
 	mut offset := 0
 	mut modified := false
+	// ERICH: I may be missing something, but I think all you have to do here is
+	//    read the key and the size of the object and nothing else needs to be 
+	//    parsed.
+	//
+	// ERICH: I would break this into two loops: the first loop you scan through
+	//     the page to find the matching key and it's offset.  The second loop
+	//     you shift all the objects to the right of Delete Offset left, by the
+	//     size of the deleted object which can be done by simply copying the raw
+	//     bytes.
 	for mut object in p.objects() {
 		if compare_bytes(key, object.key) == 0 && object.tid == tid {
 			object.xid = xid
