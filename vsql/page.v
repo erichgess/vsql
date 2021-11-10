@@ -202,6 +202,9 @@ fn (mut p Page) delete(key []byte, tid int) bool {
 
 		// ERICH: I don't think there's any reason to do this until `did_delete == true`, bc objects
 		// won't shift in `data` until after the deletion point.
+		//
+		// ERICH: Proposal: split this into two loops. The first searches from the left to the right for the deletion
+		//     target.  The second, shifts the bytes to the right of the deleted row over to fill in the vaccuum skipping serde.
 		s := object.serialize()  // ERICH: object is already serialized in `p.data` so just copy straight from there?
 		for i in 0 .. s.len {
 			p.data[offset] = s[i]
