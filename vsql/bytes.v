@@ -199,6 +199,8 @@ fn bytes_to_int(bytes []byte) int {
 // ERICH: WARNING! This is not compabitible across architectures (if you're worried about that).
 // The endianess of encoding i64s (and any multibyte primitive) will be different on big-endian
 // and little-endian architectures.
+// You could either: always encode in one form or the other and do a conversion.  Or make it so that
+// the endianness is stored in the DB header and if the architecture is not compatible crash.
 fn i64_to_bytes(n i64) []byte {
 	return Bytes8{
 		i64_value: n
