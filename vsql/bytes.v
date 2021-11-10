@@ -196,6 +196,11 @@ fn bytes_to_int(bytes []byte) int {
 	}
 }
 
+// ERICH: WARNING! This is not compabitible across architectures (if you're worried about that).
+// On little-endian machines the database file will write data in little endian format
+// on big-endian machines, the database file will write data in big endian format.
+// The result being that if a db file is written on little endian machines it cannot be copied to a
+// big endian machine.
 fn i64_to_bytes(n i64) []byte {
 	return Bytes8{
 		i64_value: n
