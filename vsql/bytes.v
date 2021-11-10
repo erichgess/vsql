@@ -202,7 +202,7 @@ fn bytes_to_int(bytes []byte) int {
 fn i64_to_bytes(n i64) []byte {
 	return Bytes8{
 		i64_value: n
-	}.bytes().reverse()
+	}.bytes().reverse()  // ERICH: What's the reverse for?
 }
 
 fn (mut b Bytes) write_string1_list(ss []string) {
